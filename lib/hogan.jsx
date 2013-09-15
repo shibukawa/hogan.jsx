@@ -1,7 +1,7 @@
 native class HoganJavaScriptHelper
 {
-    static function generateTemplateFunc(body : string) : (variant, Map.<Hogan.Template>, Hogan.Template, string) -> void;
-    static function generatePartialFunc(body : string) : (variant, Map.<Hogan.Template>, string) -> void;
+    static function generateTemplateFunc(body : string) : (variant[], Map.<Hogan.Template>, string) -> string;
+    static function generatePartialFunc(body : string) : (variant, Map.<Hogan.Template>, Hogan.Template, string) -> void;
 } = '''
 {
     generateTemplateFunc : function (body) { return new Function('c', 'p', 'i', body); },
@@ -360,7 +360,7 @@ class Hogan
         for (var key in codeObj.partials) {
             partials.push('"' + Hogan.esc(key) + '":{name:"' + Hogan.esc(codeObj.partials[key].name) + '", ' + Hogan.stringifyPartials(codeObj.partials[key]) + "}");
         }
-        return "new Hogan.Template.Partial({" + partials.join(",") + "}, " + Hogan.stringifySubstitutions(codeObj.subs) + ")";
+        return "new Hogan.Template({" + partials.join(",") + "}, " + Hogan.stringifySubstitutions(codeObj.subs) + ")";
     }
   
     static function stringify (codeObj : Hogan.CodeObj, text : string, options : variant) : string {
@@ -389,7 +389,27 @@ class Hogan
     }
 
     static function generate (tree : Hogan.Token[], text : string, options : Hogan.Options) : Hogan.Template {
-        return  null;
+        Hogan.serialNo = 0;
+        var context = new Hogan.CodeObj();
+        Hogan.walk(tree, context);
+        return Hogan.makeTemplate(context, text, options);
+    }
+    
+    static function makeTemplate (codeObj : Hogan.CodeObj, text : string, options : Hogan.Options) : Hogan.Template {
+        var template = Hogan.makePartials(codeObj);
+        var code = HoganJavaScriptHelper.generateTemplateFunc(Hogan.wrapMain(codeObj.code));
+        return new Hogan.GeneratedTemplate(code, template, text, options);
+    }
+
+    static function makePartials (codeObj : Hogan.CodeObj) : Hogan.Template {
+        var template = new Hogan.Template(codeObj);
+        for (var key in template.partials) {
+            template.partials[key] = Hogan.makePartials(codeObj.partials[key]);
+        }
+        for (var key in codeObj.subs) {
+            template.subs[key] = HoganJavaScriptHelper.generatePartialFunc(Hogan.wrapMain(codeObj.subs[key]));
+        }
+        return template;
     }
 
     static function wrapMain (code : string) : string {
@@ -521,20 +541,23 @@ class Hogan
         return Hogan.compile(text, new Hogan.Options(options));
     }
 
-    class Template
+    class GeneratedTemplate extends Hogan.Template
     {
-        class Partial
-        {
-            var partials : Map.<Hogan.Template.Partial>;
-            var subs : Map.<(variant, Map.<Hogan.Template>, Hogan.Template, string) -> void>;
+        var code : (variant[], Map.<Hogan.Template>, string) -> string;
 
-            function constructor (partials : Map.<Hogan.Template.Partial>, subs : Map.<(variant, Map.<Hogan.Template>, Hogan.Template, string) -> void>)
-            {
-                this.partials = partials;
-                this.subs = subs;
-            }
+        function constructor(code : (variant[], Map.<Hogan.Template>, string) -> string, partials : Hogan.Template, text : string, options : Hogan.Options)
+        {
+            this.code = code;
         }
 
+        override function r (context : variant[], partials : Map.<Hogan.Template>, indent : string) : string
+        {
+            return this.code(context, partials, indent);
+        }
+    }
+
+    class Template
+    {
         var options : Hogan.Options;
         var text : string;
         var subs : Map.<(variant, Map.<Hogan.Template>, Hogan.Template, string) -> void>;
@@ -580,6 +603,19 @@ class Hogan
             for (var key in stackPartials) {
                 this.partials[key] = stackPartials[key];
             }
+        }
+
+        function constructor (partials : Map.<Hogan.Template>, subs : Map.<(variant, Map.<Hogan.Template>, Hogan.Template, string) -> void>)
+        {
+            this.partials = partials;
+            this.subs = subs;
+        }
+
+        function constructor (codeObj : Hogan.CodeObj)
+        {
+            this.name = codeObj.name;
+            this.partials = {} : Map.<Hogan.Template>;
+            this.subs = {} : Map.<(variant, Map.<Hogan.Template>, Hogan.Template, string) -> void>;
         }
 
         // render: replaced by generated code.
