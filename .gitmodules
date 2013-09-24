@@ -1,0 +1,6 @@
+[submodule "test/mustache.js"]
+	path = test/mustache.js
+	url = https://github.com/raycmorgan/Mu.git
+[submodule "test/spec"]
+	path = test/spec
+	url = https://github.com/mustache/spec.git

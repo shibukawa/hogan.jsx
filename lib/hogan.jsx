@@ -1,3 +1,5 @@
+import "console.jsx";
+
 native class HoganJavaScriptHelper
 {
     static function generateTemplateFunc(body : string) : (variant[], Map.<Hogan.Template>, string) -> string;
@@ -61,6 +63,7 @@ class Hogan
         var prefix : string;
         var inPartial : boolean;
         var name : string;
+        var rawJSX: boolean;
 
         function constructor ()
         {
@@ -85,6 +88,7 @@ class Hogan
             this.prefix = node.n;
         }
 
+        // for partial
         function constructor (node : Hogan.Token)
         {
             this.name = node.n;
@@ -362,7 +366,7 @@ class Hogan
         }
         return "new Hogan.Template({" + partials.join(",") + "}, " + Hogan.stringifySubstitutions(codeObj.subs) + ")";
     }
-  
+
     static function stringify (codeObj : Hogan.CodeObj, text : string, options : variant) : string {
         var src = ["  override function r (c:variant,p:Map.<Hogan.Template>,i:int):string {",
                    "    " + Hogan.wrapMain(codeObj.code), "  }\n",
@@ -377,6 +381,7 @@ class Hogan
     static function generateJSX (tree : Hogan.Token[], text : string, options : Hogan.Options) : string {
         Hogan.serialNo = 0;
         var context = new Hogan.CodeObj();
+        context.rawJSX = false;
         Hogan.walk(tree, context);
 
         var src = [
@@ -391,29 +396,41 @@ class Hogan
     static function generate (tree : Hogan.Token[], text : string, options : Hogan.Options) : Hogan.Template {
         Hogan.serialNo = 0;
         var context = new Hogan.CodeObj();
+        context.rawJSX = true;
         Hogan.walk(tree, context);
         return Hogan.makeTemplate(context, text, options);
     }
-    
+
     static function makeTemplate (codeObj : Hogan.CodeObj, text : string, options : Hogan.Options) : Hogan.Template {
         var template = Hogan.makePartials(codeObj);
-        var code = HoganJavaScriptHelper.generateTemplateFunc(Hogan.wrapMain(codeObj.code));
+        var code = HoganJavaScriptHelper.generateTemplateFunc(Hogan.wrapMainJSX(codeObj.code));
+        console.log(Hogan.wrapMainJSX(codeObj.code));
         return new Hogan.GeneratedTemplate(code, template, text, options);
     }
 
     static function makePartials (codeObj : Hogan.CodeObj) : Hogan.Template {
         var template = new Hogan.Template(codeObj);
-        for (var key in template.partials) {
-            template.partials[key] = Hogan.makePartials(codeObj.partials[key]);
+        for (var key in codeObj.partials) {
+            if (codeObj.partials.hasOwnProperty(key))
+            {
+                template.partials[key] = Hogan.makePartials(codeObj.partials[key]);
+            }
         }
         for (var key in codeObj.subs) {
-            template.subs[key] = HoganJavaScriptHelper.generatePartialFunc(Hogan.wrapMain(codeObj.subs[key]));
+            if (codeObj.subs.hasOwnProperty(key))
+            {
+                template.subs[key] = HoganJavaScriptHelper.generatePartialFunc(Hogan.wrapMain(codeObj.subs[key]));
+            }
         }
         return template;
     }
 
     static function wrapMain (code : string) : string {
         return 'var t=this;t.b(i=i||"");' + code + 'return t.fl();';
+    }
+
+    static function wrapMainJSX (code : string) : string {
+        return 'var t=this;t.b$S(i=i||"");' + code + 'return t.fl$();';
     }
 
     static function esc(s : string) : string {
@@ -427,25 +444,56 @@ class Hogan
         return (~s.indexOf('.')) ? 'd' : 'f';
     }
 
+    static function chooseMethodJSX(s : string) : string {
+        return ((~s.indexOf('.')) ? 'd' : 'f') + "$SAXHLHogan$x2ETemplate$B";
+    }
+
     static function createPartial(node : Hogan.Token, context : Hogan.CodeObj) : string {
         var prefix = "<" + (context.prefix ? context.prefix : "");
         var sym = prefix + node.n + Hogan.serialNo++ as string;
-        context.partials[sym] = new Hogan.CodeObj(node);
-        context.code += 't.b(t.rp("' +  Hogan.esc(sym) + '",c,p,"' + (node.indent ? node.indent : '') + '"));';
+        var partial = new Hogan.CodeObj(node);
+        partial.rawJSX = context.rawJSX;
+        context.partials[sym] = partial;
+        if (context.rawJSX)
+        {
+            context.code += 't.b$S(t.rp$SAXHLHogan$x2ETemplate$S("' +  Hogan.esc(sym) + '",c,p,"' + (node.indent ? node.indent : '') + '"));';
+        }
+        else
+        {
+            context.code += 't.b(t.rp("' +  Hogan.esc(sym) + '",c,p,"' + (node.indent ? node.indent : '') + '"));';
+        }
         return sym;
     }
 
     static const codegen = {
         '#': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
-            context.code += 'if(t.s(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),' +
-                            'c,p,0,' + node.i + ',' + node.end + ',"' + node.otag + " " + node.ctag + '")){' +
-                            't.rs(c,p,' + 'function(c,p,t){';
-            Hogan.walk(node.nodes, context);
-            context.code += '});c.pop();}';
+            if (context.rawJSX)
+            {
+                context.code += 'if(t.s$XAXHLHogan$x2ETemplate$IIIS(t.' + Hogan.chooseMethodJSX(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),' +
+                                'c,p,0,' + node.i + ',' + node.end + ',"' + node.otag + " " + node.ctag + '")){' +
+                                't.rs$AXHLHogan$x2ETemplate$F$XHLHogan$x2ETemplate$LHogan$x2ETemplate$V$(c,p,' + 'function(c,p,t){';
+                Hogan.walk(node.nodes, context);
+                context.code += '});c.pop();}';
+            }
+            else
+            {
+                context.code += 'if(t.s(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),' +
+                                'c,p,0,' + node.i + ',' + node.end + ',"' + node.otag + " " + node.ctag + '")){' +
+                                't.rs(c,p,' + 'function(c,p,t){';
+                Hogan.walk(node.nodes, context);
+                context.code += '});c.pop();}';
+            }
         },
 
         '^': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
-            context.code += 'if(!t.s(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),c,p,1,0,0,"")){';
+            if (context.rawJSX)
+            {
+                context.code += 'if(!t.s$XAXHLHogan$x2ETemplate$IIIS(t.' + Hogan.chooseMethodJSX(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),c,p,1,0,0,"")){';
+            }
+            else
+            {
+                context.code += 'if(!t.s$XAXHLHogan$x2ETemplate$IIIS(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),c,p,1,0,0,"")){';
+            }
             Hogan.walk(node.nodes, context);
             context.code += '};';
         },
@@ -453,6 +501,7 @@ class Hogan
         '>': function (node : Hogan.Token, context : Hogan.CodeObj) : void {
             Hogan.createPartial(node, context);
         },
+
         '<': function (node : Hogan.Token, context : Hogan.CodeObj) : void {
             var ctx = new Hogan.CodeObj();
             ctx.inPartial = true;
@@ -467,20 +516,34 @@ class Hogan
             Hogan.walk(node.nodes, ctx);
             context.subs[node.n] = ctx.code;
             if (!context.inPartial) {
-                context.code += 't.sub("' + Hogan.esc(node.n) + '",c,p,i);';
+                if (context.rawJSX)
+                {
+                    context.code += 't.sub$SXHLHogan$x2ETemplate$S("' + Hogan.esc(node.n) + '",c,p,i);';
+                }
+                else
+                {
+                    context.code += 't.sub("' + Hogan.esc(node.n) + '",c,p,i);';
+                }
             }
         },
 
         '\n': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
-            context.code += Hogan.write('"\\n"' + (node.last ? '' : ' + i'));
+            context.code += Hogan.write('"\\n"' + (node.last ? '' : ' + i'), context);
         },
 
         '_v': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
-            context.code += 't.b(t.v(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
+            if (context.rawJSX)
+            {
+                context.code += 't.b$S(t.v$S(t.' + Hogan.chooseMethodJSX(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
+            }
+            else
+            {
+                context.code += 't.b(t.v(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
+            }
         },
 
         '_t': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
-            context.code += Hogan.write('"' + Hogan.esc(node.text) + '"');
+            context.code += Hogan.write('"' + Hogan.esc(node.text) + '"', context);
         },
 
         '{': function (node : Hogan.Token, context : Hogan.CodeObj) : void {
@@ -493,11 +556,25 @@ class Hogan
     } : Map.<(Hogan.Token, Hogan.CodeObj) -> void>;
 
     static function tripleStache(node : Hogan.Token, context : Hogan.CodeObj) : void {
-        context.code += 't.b(t.t(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
+        if (context.rawJSX)
+        {
+            context.code += 't.b$S(t.t$S(t.' + Hogan.chooseMethodJSX(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
+        }
+        else
+        {
+            context.code += 't.b(t.t(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
+        }
     }
 
-    static function write(s : string) : string {
-        return 't.b(' + s + ');';
+    static function write(s : string, context : Hogan.CodeObj) : string {
+        if (context.rawJSX)
+        {
+            return 't.b$S(' + s + ');';
+        }
+        else
+        {
+            return 't.b(' + s + ');';
+        }
     }
 
     static function walk (nodelist : Hogan.Token[], context : Hogan.CodeObj) : Hogan.CodeObj {
@@ -545,9 +622,10 @@ class Hogan
     {
         var code : (variant[], Map.<Hogan.Template>, string) -> string;
 
-        function constructor(code : (variant[], Map.<Hogan.Template>, string) -> string, partials : Hogan.Template, text : string, options : Hogan.Options)
+        function constructor(code : (variant[], Map.<Hogan.Template>, string) -> string, instance : Hogan.Template, text : string, options : Hogan.Options)
         {
             this.code = code;
+            this.partials = instance.partials;
         }
 
         override function r (context : variant[], partials : Map.<Hogan.Template>, indent : string) : string
@@ -578,6 +656,7 @@ class Hogan
             this.subs = this.getSubs();
             this.stackPartials = {} : Map.<Hogan.Template>;
             this.stackTexts = [] : string[];
+            this.stackTextIndex  = [] : Map.<Hogan.Template>[];
             this.ib();
         }
 
@@ -603,6 +682,8 @@ class Hogan
             for (var key in stackPartials) {
                 this.partials[key] = stackPartials[key];
             }
+            this.stackTexts = [] : string[];
+            this.stackTextIndex  = [] : Map.<Hogan.Template>[];
         }
 
         function constructor (partials : Map.<Hogan.Template>, subs : Map.<(variant, Map.<Hogan.Template>, Hogan.Template, string) -> void>)
@@ -611,11 +692,12 @@ class Hogan
             this.subs = subs;
         }
 
+        // for partial
         function constructor (codeObj : Hogan.CodeObj)
         {
             this.name = codeObj.name;
             this.partials = {} : Map.<Hogan.Template>;
-            this.subs = {} : Map.<(variant, Map.<Hogan.Template>, Hogan.Template, string) -> void>;
+            //this.subs = {} : Map.<(variant, Map.<Hogan.Template>, Hogan.Template, string) -> void>;
         }
 
         // render: replaced by generated code.
@@ -654,11 +736,10 @@ class Hogan
         // ensurePartial
         function ep (symbol : string, partials : Map.<Hogan.Template>) : Hogan.Template {
             var partial = this.partials[symbol];
-            
-            if (partial) {
-                return partial;
-            }
             var template = partials[partial.name];
+            /*if (partial.instance && partial.base == template) {
+                return partial.instance;
+            }*/
             if (!template)
             {
                 return null;
@@ -684,7 +765,7 @@ class Hogan
                 var template = Hogan.Template.createSpecializedPartial(template, partial.subs, partial.partials,
                     this.stackSubs, this.stackPartials, childText);
             }
-            this.partials[symbol] = template;
+            //this.partials[symbol] = template;
 
             return template;
         }
@@ -728,8 +809,7 @@ class Hogan
                 val = this.ms(func, ctx, partials, inverted, start, end, tags);
             }
 
-            pass = !!val;
-
+            pass = val as boolean;
             if (!inverted && pass && ctx) {
                 ctx.push((typeof val == 'object') ? val : ctx[ctx.length - 1]);
             }
@@ -738,7 +818,7 @@ class Hogan
         }
 
         // find values with dotted names
-        function d (key : string, ctx : variant[], partials : Map.<Hogan.Template>, returnFound : boolean) : Nullable.<string> {
+        function d (key : string, ctx : variant[], partials : Map.<Hogan.Template>, returnFound : boolean) : variant {
             var found;
             var names = key.split('.');
             var val : variant = this.f(names[0], ctx, partials, returnFound);
@@ -760,7 +840,7 @@ class Hogan
             }
 
             if (returnFound && !val) {
-                return null;
+                return false;
             }
 
             if (!returnFound && typeof val == 'function') {
@@ -769,12 +849,12 @@ class Hogan
                 ctx.pop();
             }
 
-            return val as string;
+            return val;
         }
 
         // find values with normal names
-        function f (key : string, ctx : variant[], partials : Map.<Hogan.Template>, returnFound : boolean) : Nullable.<string> {
-            var val : variant = null;
+        function f (key : string, ctx : variant[], partials : Map.<Hogan.Template>, returnFound : boolean) : variant {
+            var val : variant = false;
             var v : variant = null;
             var found = false;
             var doModelGet = this.options.modelGet;
@@ -790,7 +870,7 @@ class Hogan
 
             if (!found) {
                 if (returnFound)
-                    return null;
+                    return false;
                 else
                     return "";
             }
@@ -799,7 +879,7 @@ class Hogan
                 val = this.mv(val as (Hogan.Template, variant) -> variant, ctx, partials);
             }
 
-            return val as string;
+            return val;
         }
 
         // higher order templates
@@ -881,16 +961,16 @@ class Hogan
         }
 
         //Find a key in an object
-        static function findInScope(key : string , scope : variant, doModelGet : boolean) : string {
-            var val : string = '';
+        static function findInScope(key : string , scope : variant, doModelGet : boolean) : variant {
+            var val : variant = false;
 
             if (scope && typeof scope == 'object') {
                 if (scope[key] != null) {
-                    val = scope[key] as string;
+                    val = scope[key];
 
                     // try lookup with get for backbone or similar model data
                 } else if (doModelGet && scope['get'] && typeof scope['get'] == 'function') {
-                    var getfunc = scope['get'] as (string) -> string;
+                    var getfunc = scope['get'] as (string) -> variant;
                     val = getfunc(key);
                 }
             }
