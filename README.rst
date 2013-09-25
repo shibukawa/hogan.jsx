@@ -2,22 +2,44 @@ Hogan for JSX
 =============
 
 This is a `JSX <http://jsx.github.io/>`_ version of JavaScript templating library `Hogan <http://twitter.github.io/hogan.js/>`_.
+Original Hogan and this Hogan.jsx implement `Mustache <http://mustache.github.io/>`_ template syntax.
+You can read detail syntax at `here <http://mustache.github.io/mustache.5.html>`_.
+
 This project is aming following features:
 
-* Genrerate JSX script from Mustache formating templates.
-* Genrerate JS Function object for runtime conversion.
+* Genrerate JS Function object
+* Genrerate JSX script from Mustache formating templates (not tested yet).
 
-.. note::
+How to Use
+----------
 
-   This project is under construction.
+.. code-block:: js
+
+   import "console.jsx";
+   import "hogan.jsx";
+
+   class _Main {
+       static function main (argv : string[]) : void
+       {
+           var data = {
+               wheather: "a sunny day!",
+           } : variant;
+
+           var template = Hogan.compile("Today's wheather is {{wheather}}");
+           var output = template.render(data);
+           // prints "Today's wheather is a sunny day!"
+           console.log(output);
+       }
+   }
+
 
 License
-=======
+-------
 
-MIT
+This software is provided under MIT License.
 
 Original License
-================
+----------------
 
 Copyright 2011 Twitter, Inc.
 
