@@ -35,13 +35,13 @@ class _Test extends TestCase
             }
 
             console.log((i + 1) as int + ":", test['name']);
-            console.log('   template:', src);
-            console.log('   data:', JSON.stringify(data));
+            //console.log('   template:', src);
+            //console.log('   data:', JSON.stringify(data));
 
             if (partialKeys.length > 0)
             {
-                console.log('   partial keys:', partialKeys.join(', '));
-                console.log(partials);
+                //console.log('   partial keys:', partialKeys.join(', '));
+                //console.log(partials);
                 this.expect(template.render(data, partials)).toBe(test['expected']);
             }
             else

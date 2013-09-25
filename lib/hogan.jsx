@@ -1,4 +1,4 @@
-import "console.jsx";
+//import "console.jsx";
 
 native class HoganJavaScriptHelper
 {
@@ -404,7 +404,7 @@ class Hogan
     static function makeTemplate (codeObj : Hogan.CodeObj, text : string, options : Hogan.Options) : Hogan.Template {
         var template = Hogan.makePartials(codeObj);
         var code = HoganJavaScriptHelper.generateTemplateFunc(Hogan.wrapMainJSX(codeObj.code));
-        console.log(Hogan.wrapMainJSX(codeObj.code));
+        //console.log(Hogan.wrapMainJSX(codeObj.code));
         return new Hogan.GeneratedTemplate(code, template, text, options);
     }
 
@@ -782,15 +782,19 @@ class Hogan
 
         // render a section
         function rs (context : variant[], partials : Map.<Hogan.Template>, section : (variant, Map.<Hogan.Template>, Hogan.Template)->void) : void {
-            var tail = context[context.length - 1] as variant[];
+            var tail = context[context.length - 1];
 
             if (!Hogan.Template.isArray(tail)) {
+                //console.log("context", context, section);
                 section(context, partials, this);
                 return;
             }
+            
+            var tailarray = tail as variant[];
 
-            for (var i = 0; i < tail.length; i++) {
-                context.push(tail[i]);
+            for (var i = 0; i < tailarray.length; i++) {
+                context.push(tailarray[i]);
+                //console.log("context", context, section);
                 section(context, partials, this);
                 context.pop();
             }
@@ -830,7 +834,7 @@ class Hogan
             } else {
                 for (var i = 1; i < names.length; i++) {
                     found = Hogan.Template.findInScope(names[i], val, doModelGet);
-                    if (found) {
+                    if (found != null) {
                         cx = val;
                         val = found;
                     } else {
@@ -962,8 +966,7 @@ class Hogan
 
         //Find a key in an object
         static function findInScope(key : string , scope : variant, doModelGet : boolean) : variant {
-            var val : variant = false;
-
+            var val : variant = null;
             if (scope && typeof scope == 'object') {
                 if (scope[key] != null) {
                     val = scope[key];
