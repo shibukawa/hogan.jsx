@@ -1,0 +1,38 @@
+{
+  "name": "hogan.jsx",
+  "version": "0.1.0",
+  "description": "Hogan templating engine for JSX.",
+  "scripts": {
+    "build": "grunt build",
+    "test": "grunt test",
+    "doc": "grunt doc"
+  },
+  "engines" : { "node" : ">=0.8.0" },
+  "keywords": [
+    "jsx",
+    "lib",
+    "template",
+    "mustache"
+  ],
+  "main": "./lib/hogan.jsx",
+  "homepage": "https://github.com/shibukawa/hogan.jsx",
+  "bugs": {
+    "url": "https://github.com/shibukawa/hogan.jsx.git/issues"
+  },
+  "directories": {
+    "doc": "./doc",
+    "lib": "./lib",
+    "test": "./test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/shibukawa/hogan.jsx.git"
+  },
+  "devDependencies": {
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt": "~0.4.1",
+    "grunt-jsx": "~0.0.4"
+  },
+  "author": "shibukawa",
+  "license": "MIT"
+}

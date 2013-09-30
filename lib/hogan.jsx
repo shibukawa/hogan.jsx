@@ -305,7 +305,7 @@ class Hogan
                 throw new Error('Illegal content in < super tag.');
             }
 
-            if (Hogan.tags[token.tag] <= Hogan.tags['$'] || Hogan.isOpener(token, customTags)) {
+            if ((Hogan.tags[token.tag] && Hogan.tags[token.tag] <= Hogan.tags['$']) || Hogan.isOpener(token, customTags)) {
                 stack.push(token);
                 token.nodes = Hogan.buildTree(tokens, stack, customTags);
             } else if (token.tag == '/') {
