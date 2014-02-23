@@ -6,8 +6,12 @@ native class HoganJavaScriptHelper
     static function generatePartialFunc(body : string) : (variant, Map.<Hogan.Template>, Hogan.Template, string) -> void;
 } = '''
 {
-    generateTemplateFunc : function (body) { return new Function('c', 'p', 'i', body); },
-    generatePartialFunc : function (body) { return new Function('c', 'p', 't', 'i', body); }
+    generateTemplateFunc : function (body) {
+        return new Function('c', 'p', 'i', body);
+    },
+    generatePartialFunc : function (body) {
+        return new Function('c', 'p', 't', 'i', body);
+    }
 }
 ''';
 
@@ -368,7 +372,7 @@ class Hogan
     }
 
     static function stringify (codeObj : Hogan.CodeObj, text : string, options : variant) : string {
-        var src = ["  override function r (c:variant,p:Map.<Hogan.Template>,i:int):string {",
+        var src = ["  override function _ren (c:variant,p:Map.<Hogan.Template>,i:int):string {",
                    "    " + Hogan.wrapMain(codeObj.code), "  }\n",
                    "  override function getPartials() : Map<Hogan.Template> {",
                    "    return " + Hogan.stringifyPartials(codeObj) +  ";\n  }\n"
@@ -402,7 +406,6 @@ class Hogan
     static function makeTemplate (codeObj : Hogan.CodeObj, text : string, options : Hogan.Options) : Hogan.Template {
         var template = Hogan.makePartials(codeObj);
         var code = HoganJavaScriptHelper.generateTemplateFunc(Hogan.wrapMain(codeObj.code));
-        //console.log(Hogan.wrapMainJSX(codeObj.code));
         return new Hogan.GeneratedTemplate(code, template, text, options);
     }
 
@@ -424,7 +427,7 @@ class Hogan
     }
 
     static function wrapMain (code : string) : string {
-        return 'var t=this;t.b(i=i||"");' + code + 'return t.fl();';
+        return 'var t=this;t.pb(i=i||"");' + code + 'return t.fl();';
     }
 
     static function esc(s : string) : string {
@@ -435,7 +438,7 @@ class Hogan
     }
 
     static function chooseMethod(s : string) : string {
-        return (~s.indexOf('.')) ? 'd' : 'f';
+        return (~s.indexOf('.')) ? 'dn' : 'fk';
     }
 
     static function createPartial(node : Hogan.Token, context : Hogan.CodeObj) : string {
@@ -443,13 +446,13 @@ class Hogan
         var sym = prefix + node.n + Hogan.serialNo++ as string;
         var partial = new Hogan.CodeObj(node);
         context.partials[sym] = partial;
-        context.code += 't.b(t.rp("' +  Hogan.esc(sym) + '",c,p,"' + (node.indent ? node.indent : '') + '"));';
+        context.code += 't.pb(t.rp("' +  Hogan.esc(sym) + '",c,p,"' + (node.indent ? node.indent : '') + '"));';
         return sym;
     }
 
     static const codegen = {
         '#': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
-            context.code += 'if(t.s(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),' +
+            context.code += 'if(t.ss(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),' +
                             'c,p,0,' + node.i + ',' + node.end + ',"' + node.otag + " " + node.ctag + '")){' +
                             't.rs(c,p,' + 'function(c,p,t){';
             Hogan.walk(node.nodes, context);
@@ -457,7 +460,7 @@ class Hogan
         },
 
         '^': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
-            context.code += 'if(!t.s(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),c,p,1,0,0,"")){';
+            context.code += 'if(!t.ss(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,1),c,p,1,0,0,"")){';
             Hogan.walk(node.nodes, context);
             context.code += '};';
         },
@@ -489,7 +492,7 @@ class Hogan
         },
 
         '_v': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
-            context.code += 't.b(t.v(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
+            context.code += 't.pb(t.val(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
         },
 
         '_t': function(node : Hogan.Token, context : Hogan.CodeObj) : void {
@@ -506,11 +509,11 @@ class Hogan
     } : Map.<(Hogan.Token, Hogan.CodeObj) -> void>;
 
     static function tripleStache(node : Hogan.Token, context : Hogan.CodeObj) : void {
-        context.code += 't.b(t.t(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
+        context.code += 't.pb(t.tr(t.' + Hogan.chooseMethod(node.n) + '("' + Hogan.esc(node.n) + '",c,p,0)));';
     }
 
     static function write(s : string, context : Hogan.CodeObj) : string {
-        return 't.b(' + s + ');';
+        return 't.pb(' + s + ');';
     }
 
     static function walk (nodelist : Hogan.Token[], context : Hogan.CodeObj) : Hogan.CodeObj {
@@ -564,7 +567,7 @@ class Hogan
             this.partials = instance.partials;
         }
 
-        override function r (context : variant[], partials : Map.<Hogan.Template>, indent : string) : string
+        override function _ren (context : variant[], partials : Map.<Hogan.Template>, indent : string) : string
         {
             return this.code(context, partials, indent);
         }
@@ -637,7 +640,7 @@ class Hogan
         }
 
         // render: replaced by generated code.
-        function r (context : variant[], partials : Map.<Hogan.Template>, indent : string) : string
+        function _ren (context : variant[], partials : Map.<Hogan.Template>, indent : string) : string
         {
             return '';
         }
@@ -652,11 +655,11 @@ class Hogan
         }
 
         // triple stache
-        __export__ function v (str : string) : string {
+        __export__ function val (str : string) : string {
             return Hogan.Template.hoganEscape(str);
         }
 
-        __export__ function t (str : string) : string {
+        __export__ function tr (str : string) : string {
             return Hogan.Template.coerceToString(str);
         }
 
@@ -666,7 +669,7 @@ class Hogan
 
         // render internal -- a hook for overrides that catches partials too
         __export__ function ri (context : variant[], partials : Map.<Hogan.Template>, indent : string) : string {
-            return this.r(context, partials, indent);
+            return this._ren(context, partials, indent);
         }
 
         // ensurePartial
@@ -721,7 +724,6 @@ class Hogan
             var tail = context[context.length - 1];
 
             if (!Hogan.Template.isArray(tail)) {
-                //console.log("context", context, section);
                 section(context, partials, this);
                 return;
             }
@@ -730,14 +732,13 @@ class Hogan
 
             for (var i = 0; i < tailarray.length; i++) {
                 context.push(tailarray[i]);
-                //console.log("context", context, section);
                 section(context, partials, this);
                 context.pop();
             }
         }
 
         // maybe start a section
-        __export__ function s(val : variant, ctx : variant[], partials : Map.<Hogan.Template>, inverted : int, start : int, end : int, tags : string) : boolean {
+        __export__ function ss(val : variant, ctx : variant[], partials : Map.<Hogan.Template>, inverted : int, start : int, end : int, tags : string) : boolean {
             var pass : boolean;
 
             if (Hogan.Template.isArray(val) && val['length'] == 0) {
@@ -758,10 +759,10 @@ class Hogan
         }
 
         // find values with dotted names
-        __export__ function d (key : string, ctx : variant[], partials : Map.<Hogan.Template>, returnFound : boolean) : variant {
+        __export__ function dn (key : string, ctx : variant[], partials : Map.<Hogan.Template>, returnFound : boolean) : variant {
             var found;
             var names = key.split('.');
-            var val : variant = this.f(names[0], ctx, partials, returnFound);
+            var val : variant = this.fk(names[0], ctx, partials, returnFound);
             var doModelGet = this.options.modelGet;
             var cx : variant = null;
 
@@ -793,7 +794,7 @@ class Hogan
         }
 
         // find values with normal names
-        __export__ function f (key : string, ctx : variant[], partials : Map.<Hogan.Template>, returnFound : boolean) : variant {
+        __export__ function fk (key : string, ctx : variant[], partials : Map.<Hogan.Template>, returnFound : boolean) : variant {
             var val : variant = false;
             var v : variant = null;
             var found = false;
@@ -827,7 +828,7 @@ class Hogan
             var oldTags = this.options.delimiters;
 
             this.options.delimiters = tags;
-            this.b(this.ct(Hogan.Template.coerceToString(func(this, cx, text)), cx, partials));
+            this.pb(this.ct(Hogan.Template.coerceToString(func(this, cx, text)), cx, partials));
             this.options.delimiters = oldTags;
 
             return false;
@@ -844,7 +845,7 @@ class Hogan
         }
 
         // template result buffering
-        __export__ function b (s : string) : void {
+        __export__ function pb (s : string) : void {
             this.buf.push(s);
         }
 
