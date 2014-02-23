@@ -1,5 +1,3 @@
-import "console.jsx";
-
 native class HoganJavaScriptHelper
 {
     static function generateTemplateFunc(body : string) : (variant[], Map.<Hogan.Template>, string) -> string;
