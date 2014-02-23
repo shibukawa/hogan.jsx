@@ -29,7 +29,8 @@ module.exports = function(grunt) {
       test: {
         src: ['<%= testDir %>/*.jsx'],
         add_search_path: ['<%= libDir %>'],
-        args: '--test'
+        test: true,
+        minify: true
       },
 
       doc: {
