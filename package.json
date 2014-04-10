@@ -1,6 +1,6 @@
 {
   "name": "hogan.jsx",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Hogan templating engine for JSX.",
   "scripts": {
     "build": "grunt build",

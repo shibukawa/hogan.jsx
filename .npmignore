@@ -1,0 +1,7 @@
+node_modules
+test
+gruntfile.js
+.gitmodules
+.npmignore
+doc
+*.tgz
